@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<script src="jquery-1.7.1.min.js"></script>
+		<script src="loader.js"></script>
+		<style>
+			body
+			{
+				background:url(tlo.jpg);
+				margin: 0 auto;
+			}
+
+			#srodek
+			{
+				margin: auto;
+				margin-top: 100px;
+				margin-bottom: 100px;
+				width: 500px;
+				border-radius: 16px;
+				padding: 10px;
+				border: 2px solid black;
+				
+				background-color: rgba(255, 255, 255, 0.8);
+				text-align: center;
+			}
+
+			#ustawieniaTxt
+			{
+				text-decoration: underline;
+				color: green;
+				margin-top: 10px;
+			}
+
+			#ustawieniaTxt:hover
+			{
+				cursor: pointer;
+				color: black;
+			}
+			
+			#chart_div, #chartAll_div
+			{
+				padding-top: 10px;
+				display: inline-block;
+				margin: 0 auto;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="srodek">
+			Wielkość mieszkania [m<sup>2</sup>]: <input type="number" id="iloscm2">
+			<br>
+			Okres użytkowania [lata]: <input type="number" id="okresUzytku">
+			<br>
+			Budownictwo: <input type="radio" name="budownictwo" value="budNowe" checked>Nowe
+			<input type="radio" name="budownictwo" value="budStare">Stare
+			<br>
+			Wlicz koszt zakupu: <input type="radio" name="wliczZakup" value="tak">Tak
+			<input type="radio" name="wliczZakup" value="nie" checked>Nie
+			<br>
+			<span id="ustawieniaTxt">&#x25BC;Ustawienia zaawansowane&#x25BC;</span>
+			<div id="ustawieniaZaawansowane" style="display: none;">
+				<table border="0" style="margin: auto;">
+					<tr>
+						<td>Roczne zużycie energii [GJ/m<sup>2</sup>]:</td> <td><input id="roczneZuzycie" type="number"></td>
+					</tr>	
+					<tr><td colspan="2"><hr></td></tr>
+					<tr>
+						<td>Cena zakupu pieca węglowego [zł]:</td> <td><input id="cenaZakupPiecW" type="number"></td>
+					</tr>	
+					<tr>
+						<td>Cena węgla [zł/tona]:</td> <td><input id="cenaWeglaTona" type="number"></td>
+					</tr>	
+					<tr>
+						<td>Wartość opałowa węgla [GJ/t]:</td> <td><input id="wartoscOpalowaWegiel" type="number"></td>
+					</tr>
+					<tr><td colspan="2"><hr></td></tr>
+					<tr>
+						<td>Cena zakupu pieca gazowego [zł]:</td> <td><input id="cenaZakupPiecG" type="number"></td>
+					</tr>	
+					<tr>
+						<td>Cena gazu [zł/m<sup>3</sup>]:</td> <td><input id="cenaGazu" type="number"></td>
+					</tr>
+					<tr>
+						<td>Wartość opałowa gazu [GJ/m<sup>3</sup>]:</td> <td><input id="wartoscOpalowaGaz" type="number"></td>
+					</tr>
+					<tr><td colspan="2"><hr></td></tr>
+					<tr>
+						<td>Cena zakupu pompy ciepła [zł]:</td> <td><input id="cenaZakupPompa" type="number"></td>
+					</tr>	
+					<tr>
+						<td>Cena energii elektr. [zł/kWh]:</td> <td><input id="cenaEnergii" type="number"></td>
+					</tr>
+					<tr>
+						<td>Wartość opałowa energii elektr. [GJ/kWh]:</td> <td><input id="wartoscOpalowaEnergia" type="number"></td>
+					</tr>
+					<tr><td colspan="2"><hr></td></tr>
+				</table>
+			</div><br>
+			<button style="margin-top: 10px" onclick="licz()">OBLICZ</button>
+			<br>
+			<span id="test"></span>
+			<div id="chart_div"></div>
+			<div id="chartAll_div"></div>
+		</div>
+
+		<script>
+			google.charts.load('current', {'packages':['corechart']});
+			var isExpertOptionsShow = false;
+			
+			var chart = [];
+			var chartAll = [];
+
+			$(document).ready(function()
+			{
+				// ROZWIJANIE USTAWIEN ZAAWANSOWANYCH
+				$('#ustawieniaTxt').click(function()
+				{
+					isExpertOptionsShow = !isExpertOptionsShow;
+					$('#ustawieniaZaawansowane').slideToggle('fast');
+					$('#ustawieniaZaawansowane').toggleClass('active');
+				});
+				//
+
+				// OBSLUGA ZMIANY CHECKBOXA OD RODZAJU BUDOWNICTWA
+				$('input[type=radio][name=budownictwo]').on('change', function() {
+					if ($('#roczneZuzycie').val() == "0.6" || $('#roczneZuzycie').val() == "0.9")
+					{
+						switch (this.value)
+						{
+							case "budNowe":
+								$('#roczneZuzycie').val("0.6");
+							break;
+							case "budStare":
+								$('#roczneZuzycie').val("0.9");
+							break;
+						}
+					}
+				});
+				//
+				
+				// USTAWIANIE BAZOWYCH WARTOSCI
+				$('#iloscm2').val("150");
+				$('#okresUzytku').val("1");
+
+				$('#roczneZuzycie').val("0.6");
+				
+				$('#cenaZakupPiecW').val("2000");
+				$('#cenaWeglaTona').val("950");
+				$('#wartoscOpalowaWegiel').val("21");
+				
+				$('#cenaZakupPiecG').val("5000");
+				$('#cenaGazu').val("2");
+				$('#wartoscOpalowaGaz').val("0.03186");
+				
+				$('#cenaZakupPompa').val("20000");
+				$('#cenaEnergii').val("0.49");
+				$('#wartoscOpalowaEnergia').val("0.0036");
+				//
+			});
+
+			function licz()
+			{
+				var iloscMetrow = parseInt($("#iloscm2").val());
+				var roczneZuzycie = parseFloat($("#roczneZuzycie").val());
+				var iloscLat = parseFloat($("#okresUzytku").val());
+				//var budownictwo = $('input[type=radio][name=budownictwo]').val();
+				
+				if (!iloscMetrow || iloscMetrow < 0)
+				{
+					alert("Błędna ilość metrów sześciennych mieszkania!");
+					return;
+				}
+
+				/*var gj = 45.24;
+				var jednostka = 0.95;
+				var x = gj/jednostka;
+				var wartosc = 1/x;
+				$("#test").html("wartosc: "+wartosc.toFixed(5));*/
+				
+				var wliczKosztZakupuPieca = document.querySelector('input[name=wliczZakup]:checked').value=="tak";
+				console.log(wliczKosztZakupuPieca);
+				
+				var kosztPiecWegiel = wliczKosztZakupuPieca?parseInt($("#cenaZakupPiecW").val()):0;
+				var kosztPiecGaz = wliczKosztZakupuPieca?parseInt($("#cenaZakupPiecG").val()):0;
+				var kosztPompa = wliczKosztZakupuPieca?parseInt($("#cenaZakupPompa").val()):0;
+
+				var kosztWegiel = parseInt((1/parseFloat($("#wartoscOpalowaWegiel").val())*parseFloat($("#cenaWeglaTona").val()))*roczneZuzycie*iloscMetrow);
+				var kosztGaz = parseInt((1/parseFloat($("#wartoscOpalowaGaz").val())*parseFloat($("#cenaGazu").val()))*roczneZuzycie*iloscMetrow);
+				var kosztEnergia = parseInt((1/parseFloat($("#wartoscOpalowaEnergia").val())*parseFloat($("#cenaEnergii").val()))*roczneZuzycie*iloscMetrow);
+
+				if (isExpertOptionsShow && $("#test").html() == "")
+				{
+					isExpertOptionsShow = false;
+					$('#ustawieniaZaawansowane').slideToggle('fast');
+					$('#ustawieniaZaawansowane').toggleClass('active');
+				}
+
+				$("#test").html(
+				'<table border="1" style="margin: auto; border-collapse: collapse;">'+
+					'<tr>'+
+					'	<th>Nośnik energii</th><th>Miesięczny koszt</th><th>Roczny koszt</th><th>Koszt przez cały okres</th>'+
+					'</tr>'+
+					'<tr>'+
+					'	<td>Węgiel</td><td>'+parseInt((kosztWegiel+kosztPiecWegiel)/12)+'</td><td>'+(kosztWegiel+kosztPiecWegiel)+'</td><td>'+((kosztWegiel*iloscLat)+kosztPiecWegiel)+'</td>'+
+					'</tr>	'+
+					'<tr>'+
+					'	<td>Gaz</td><td>'+parseInt((kosztGaz+kosztPiecGaz)/12)+'</td><td>'+(kosztGaz+kosztPiecGaz)+'</td><td>'+((kosztGaz*iloscLat)+kosztPiecGaz)+'</td>'+
+					'</tr>	'+
+					'<tr>'+
+					'	<td>Energia elektr.</td><td>'+parseInt((kosztEnergia+kosztPompa)/12)+'</td><td>'+(kosztEnergia+kosztPompa)+'</td><td>'+((kosztEnergia*iloscLat)+kosztPompa)+'</td>'+
+					'</tr>	'+
+				'</table>');
+				
+				window.chart = [
+					['Węgiel', (kosztWegiel+kosztPiecWegiel), (kosztWegiel+kosztPiecWegiel)],
+					['Gaz', (kosztGaz+kosztPiecGaz), (kosztGaz+kosztPiecGaz)],
+					['Energia elektr.', (kosztEnergia+kosztPompa), (kosztEnergia+kosztPompa)]
+				];
+				window.chartAll = [
+					['Węgiel', kosztWegiel*iloscLat+kosztPiecWegiel, kosztWegiel*iloscLat+kosztPiecWegiel],
+					['Gaz', kosztGaz*iloscLat+kosztPiecGaz, kosztGaz*iloscLat+kosztPiecGaz],
+					['Energia elektr.', kosztEnergia*iloscLat+kosztPompa, kosztEnergia*iloscLat+kosztPompa]
+				];
+				$('#chartAll_div').hide();
+				google.charts.setOnLoadCallback(drawChart());
+			}
+			
+			function drawChart()
+			{
+				var data = new google.visualization.DataTable();
+				data.addColumn('string', 'Topping');
+				data.addColumn('number', 'Koszt zł.');
+				data.addColumn({"id":"","label":"kwota","pattern":"","type":"number","role":"annotation"});
+				data.addRows(window.chart);
+
+				var options = {'title':'Wykres przedstawijący koszty ogrzewania', 'width':400, 'height':300};
+				var chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
+				chart.draw(data, options);
+				
+				if (window.chart[0][1] != window.chartAll[0][1])
+				{
+					$('#chartAll_div').show();
+					var data = new google.visualization.DataTable();
+					data.addColumn('string', 'Topping');
+					data.addColumn('number', 'Koszt zł.');
+					data.addColumn({"id":"","label":"kwota","pattern":"","type":"number","role":"annotation"});
+					data.addRows(window.chartAll);
+
+					var options = {'title':'Wykres przedstawijący koszty ogrzewania (cały okres)', 'width':400, 'height':300};
+					var chart = new google.visualization.ColumnChart(document.getElementById('chartAll_div'));
+					chart.draw(data, options);
+				}
+			}
+		</script>
+	</body>
+</html>
